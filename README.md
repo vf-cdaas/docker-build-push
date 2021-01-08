@@ -21,11 +21,11 @@ steps:
   - uses: actions/checkout@v2.3.2
     name: Check out code
 
-  - uses: mr-smithers-excellent/docker-build-push@v4
+  - uses: mr-smithers-excellent/docker-build-push@v5
     name: Build & push Docker image
     with:
       image: repo/image
-      tag: latest
+      tags: v1, latest
       registry: registry-url.io
       dockerfile: Dockerfile.ci
       username: ${{ secrets.DOCKER_USERNAME }}
@@ -34,25 +34,25 @@ steps:
 
 ## Inputs
 
-| Name       | Description                                                                             | Required |
-|------------|-----------------------------------------------------------------------------------------|----------|
-| image      | Docker image name                                                                       | Yes      |
-| tag        | Docker image tag (see [Tagging the image with GitOps](#tagging-the-image-using-gitops)) | No       |
-| registry   | Docker registry host                                                                    | Yes      |
-| dockerfile | Location of Dockerfile (defaults to `Dockerfile`)                                       | No       |
-| directory  | Directory to pass to `docker build` command, if not project root                        | No       |
-| buildArgs  | Docker build arguments in format `KEY=VALUE,KEY=VALUE`                                  | No       |
-| username   | Docker registry username                                                                | No       |
-| password   | Docker registry password or token                                                       | No       |
-| githubOrg  | GitHub organization to push image to (if not current)                                   | No       |
+| Name       | Description                                                                                              | Required |
+|------------|----------------------------------------------------------------------------------------------------------|----------|
+| image      | Docker image name                                                                                        | Yes      |
+| tags       | Comma separated docker image tags (see [Tagging the image with GitOps](#tagging-the-image-using-gitops)) | No       |
+| registry   | Docker registry host                                                                                     | Yes      |
+| dockerfile | Location of Dockerfile (defaults to `Dockerfile`)                                                        | No       |
+| directory  | Directory to pass to `docker build` command, if not project root                                         | No       |
+| buildArgs  | Docker build arguments in format `KEY=VALUE,KEY=VALUE`                                                   | No       |
+| username   | Docker registry username                                                                                 | No       |
+| password   | Docker registry password or token                                                                        | No       |
+| githubOrg  | GitHub organization to push image to (if not current)                                                    | No       |
 
 ## Outputs
 
 | Name          | Description                                                       | Format                     |
 |---------------|-------------------------------------------------------------------|----------------------------|
-| imageFullName | Full name of the Docker image with registry prefix and tag suffix | `registry/owner/image:tag` |
+| imageFullName | Full name of the Docker image with registry prefix                | `registry/owner/image`     |
 | imageName     | Name of the Docker image with owner prefix                        | `owner/image`              |
-| tag           | Tag for the Docker image                                          | `tag`                      |
+| tags          | Tags for the Docker image                                         | `v1,latest`                |
 
 ## Examples
 
@@ -62,7 +62,7 @@ steps:
 * Modify sample below and include in your workflow `.github/workflows/*.yml` file 
 
 ```yaml
-uses: mr-smithers-excellent/docker-build-push@v4
+uses: mr-smithers-excellent/docker-build-push@v5
 with:
   image: docker-hub-repo/image-name
   registry: docker.io
@@ -79,7 +79,7 @@ with:
 * Ensure you set the username to `_json_key`
 
 ```yaml
-uses: mr-smithers-excellent/docker-build-push@v4
+uses: mr-smithers-excellent/docker-build-push@v5
 with:
   image: gcp-project/image-name
   registry: gcr.io
@@ -96,7 +96,7 @@ with:
 * Modify sample below and include in your workflow `.github/workflows/*.yml` file
 
 ```yaml
-uses: mr-smithers-excellent/docker-build-push@v4
+uses: mr-smithers-excellent/docker-build-push@v5
 with:
   image: image-name
   registry: [aws-account-number].dkr.ecr.[region].amazonaws.com
@@ -113,7 +113,7 @@ env:
 * Pass the default GitHub Actions token or custom secret with [proper push permissions](https://help.github.com/en/actions/configuring-and-managing-workflows/authenticating-with-the-github_token#permissions-for-the-github_token)
 
 ```yaml
-uses: mr-smithers-excellent/docker-build-push@v4
+uses: mr-smithers-excellent/docker-build-push@v5
 with:
   image: github-repo/image-name
   registry: ghcr.io
@@ -124,7 +124,7 @@ with:
 
 ## Tagging the image using GitOps
 
-By default, if you do not pass a `tag` input this action will use an algorithm based on the state of your git repo to determine the Docker image tag. This is designed to enable developers to more easily use [GitOps](https://www.weave.works/technologies/gitops/) in their CI/CD pipelines. Below is a table detailing how the GitHub trigger (branch or tag) determines the Docker tag.
+By default, if you do not pass a `tags` input this action will use an algorithm based on the state of your git repo to determine the Docker image tag. This is designed to enable developers to more easily use [GitOps](https://www.weave.works/technologies/gitops/) in their CI/CD pipelines. Below is a table detailing how the GitHub trigger (branch or tag) determines the Docker tag.
 
 | Trigger                  | Commit SHA | Docker Tag           |
 |--------------------------|------------|----------------------|

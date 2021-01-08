@@ -22,8 +22,11 @@ const createTag = () => {
     // If we're not building a tag, use branch-prefix-{GIT_SHORT_SHA) as the Docker tag
     // refs/heads/jira-123/feature/something
     const branchName = ref.replace('refs/heads/', '');
-    const branchPrefix = branchName.includes('/') ? branchName.substring(0, branchName.indexOf('/')) : branchName;
-    dockerTag = `${branchPrefix}-${shortSha}`;
+    const safeBranchName = branchName
+      .replace(/[^\w.-]+/g, '-')
+      .replace(/^[^\w]+/, '')
+      .substring(0, 120);
+    dockerTag = `${safeBranchName}-${shortSha}`;
   } else {
     core.setFailed(
       'Unsupported GitHub event - only supports push https://help.github.com/en/articles/events-that-trigger-workflows#push-event-push'
@@ -34,8 +37,11 @@ const createTag = () => {
   return dockerTag;
 };
 
-const createBuildCommand = (dockerfile, imageName, buildDir, buildArgs) => {
-  let buildCommandPrefix = `docker build -f ${dockerfile} -t ${imageName}`;
+const createTagCommand = (imageName, existingTag, newTag) =>
+  `docker tag ${imageName}:${existingTag} ${imageName}:${newTag}`;
+
+const createBuildCommand = (dockerfile, imageName, tag, buildDir, buildArgs) => {
+  let buildCommandPrefix = `docker build -f ${dockerfile} -t ${imageName}:${tag}`;
   if (buildArgs) {
     const argsSuffix = buildArgs.map(arg => `--build-arg ${arg}`).join(' ');
     buildCommandPrefix = `${buildCommandPrefix} ${argsSuffix}`;
@@ -44,7 +50,7 @@ const createBuildCommand = (dockerfile, imageName, buildDir, buildArgs) => {
   return `${buildCommandPrefix} ${buildDir}`;
 };
 
-const build = (imageName, buildArgs) => {
+const build = (imageName, tag, buildArgs) => {
   const dockerfile = core.getInput('dockerfile');
   const buildDir = core.getInput('directory') || '.';
 
@@ -52,9 +58,12 @@ const build = (imageName, buildArgs) => {
     core.setFailed(`Dockerfile does not exist in location ${dockerfile}`);
   }
 
-  core.info(`Building Docker image: ${imageName}`);
-  cp.execSync(createBuildCommand(dockerfile, imageName, buildDir, buildArgs), cpOptions);
+  core.info(`Building Docker image: ${imageName}:${tag}`);
+  cp.execSync(createBuildCommand(dockerfile, imageName, tag, buildDir, buildArgs), cpOptions);
 };
+
+const tag = (imageName, existingTag, newTag) =>
+  cp.execSync(createTagCommand(imageName, existingTag, newTag), cpOptions);
 
 const isEcr = registry => registry && registry.includes('amazonaws');
 
@@ -88,14 +97,15 @@ const login = () => {
   }
 };
 
-const push = imageName => {
-  core.info(`Pushing Docker image ${imageName}`);
-  cp.execSync(`docker push ${imageName}`, cpOptions);
+const push = (imageName, imageTag) => {
+  core.info(`Pushing Docker image ${imageName}:${imageTag}`);
+  cp.execSync(`docker push ${imageName}:${imageTag}`, cpOptions);
 };
 
 module.exports = {
   createTag,
   build,
+  tag,
   login,
   push
 };
